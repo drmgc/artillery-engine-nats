@@ -1,0 +1,14 @@
+{
+  "name": "artillery-plugin-nats",
+  "version": "0.0.1",
+  "description": "NATS engine for Artillery",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sergey Naumov",
+  "license": "MIT",
+  "dependencies": {
+    "debug": "^4.3.4"
+  }
+}
