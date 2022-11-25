@@ -1,14 +1,21 @@
 {
-  "name": "artillery-plugin-nats",
+  "name": "artillery-engine-nats",
   "version": "0.0.1",
   "description": "NATS engine for Artillery",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "docker": "docker-compose -p artillery-engine-nats",
+    "test": "ARTILLERY_PLUGIN_PATH=`pwd`/.. NODE_PATH=`pwd`/.. DEBUG=engine:nats artillery run test.yaml"
   },
-  "author": "Sergey Naumov",
+  "author": "Sergey Naumov <drmgc@yandex.ru>",
   "license": "MIT",
   "dependencies": {
-    "debug": "^4.3.4"
+    "async": "^3.2.4",
+    "debug": "^4.3.4",
+    "lodash": "^4.17.21",
+    "nats": "^2.9.0"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0-27"
   }
 }

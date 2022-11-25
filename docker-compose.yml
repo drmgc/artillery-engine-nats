@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  nats:
+    image: nats:2-alpine
+    ports:
+      # client port
+      - "127.0.0.1:14222:4222"
+
+      # http monitoring
+      - "127.0.0.1:18222:8222"
+
+      # route connections
+      - "127.0.0.1:16222:6222"
