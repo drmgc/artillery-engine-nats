@@ -1,5 +1,5 @@
 config:
-  target: 'nats://localhost:14222'
+  # target: 'nats://localhost:14222'
   phases:
     - arrivalRate: 1
       duration: 1
@@ -15,15 +15,15 @@ scenarios:
           - log:  'hi'
           - log:  'hey'
         count: 5
-      - do: something
-      - do: othe something
+      # - do: something
+      # - do: othe something
       - request:
           subject: 'ping'
       - request:
           subject: 'time'
-      - request:
-          subject: 'foo-json'
-          json:
-            data: 'bar'
-            foo: 'baz'
+      # - request:
+      #     subject: 'foo-json'
+      #     json:
+      #       data: 'bar'
+      #       foo: 'baz'
       - log:  'done'

@@ -13,10 +13,9 @@ class ArtilleryEngineNats {
     this.events = events;
     this.helpers = helpers;
 
-    const config = this.config = script.config.engines.nats || {};
-    this.greeting = config.greeting || 'hello, world';
+    this.config = script.config;
 
-    debug('target is:', script.config.target);
+    debug('target', this.config.target);
 
     script.config.processor = script.config.processor || {};
   }
@@ -73,7 +72,7 @@ class ArtilleryEngineNats {
 
     if (rspec.request) {
       return async (context) => {
-        const { subject, string, json, opts } = rspec.request;
+        const { subject, string, json, opts, capture } = rspec.request;
 
         if (!subject || typeof subject !== 'string') {
           throw new Error(`Invalid subject: ${subject}`);
@@ -83,23 +82,48 @@ class ArtilleryEngineNats {
           throw new Error(`"string" and "json" fields are not allowed simultaneously`);
         }
 
-        let data = undefined;
+        if (capture && !Array.isArray(capture)) {
+          throw new Error(`"capture" expected to be an array`);
+        }
 
-        if (string) data = context.stringCodec.encode(string);
-        if (json) data = context.stringCodec.encode(JSON.stringify(json));
+        let rawData = undefined;
 
-        debug('a request to ', subject);
+        if (string) rawData = string;
+        if (json) rawData = JSON.stringify(json);
+
+        if (rawData) rawData = engineUtil.template(rawData, context);
+
+        const encodedData = context.stringCodec.encode(rawData);
 
         if (!context.nats) throw new Error(`NATS instance is missing in the context`);
 
+        debug('request', { subject, rawData });
+
         try {
-          const res = await context.nats.request(subject, data, opts);
-          debug('received', context.stringCodec.decode(res.data));
+          const response = await context.nats.request(subject, encodedData, opts);
+          debug('received', context.stringCodec.decode(response.data));
+
+          // capturing
+
+          if (capture) {
+            const newVars = {};
+
+            for (const cap of capture) {
+              const { json, as } = cap;
+
+              if (typeof json !== 'string') throw new Error('"json" expected to be a string');
+              if (json.startsWith('$.')) throw new Error('"json" expected to be in format "$.foo.bar"');
+              if (typeof as !== 'string') throw new Error('"as" expected to be a string');
+
+              newVars[as] = _.get(response, json.substring(2));
+            }
+
+            context.vars = { ...context.vars, newVars };
+          }
         } catch (e) {
+          debug(e);
           events.emit('error', 'NATS request failed: ' + e);
         }
-
-        // TODO
 
         return context;
       }
@@ -112,12 +136,10 @@ class ArtilleryEngineNats {
     return (initialContext, cb) => {
       const init = async () => {
 
-        const { servers } = this.config;
-
-        debug('connecting to NATS server(s): ', servers);
+        debug('connecting to NATS server: ', this.config.target);
 
         initialContext.nats = await nats.connect({
-          servers,
+          servers: this.config.target,
         }).catch((err) => {
           events.emit('error', `Error occured while connecting to NATS server: ${err}`);
         });
@@ -128,9 +150,11 @@ class ArtilleryEngineNats {
         return initialContext;
       };
 
-      // TODO: deinit: disconnect NATS
+      const deinit = async (ctx) => {
+        await ctx.nats.close();
+      };
 
-      const steps = [init, ...tasks];
+      const steps = [init, ...tasks, deinit];
 
       A.waterfall(steps, (err, ctx) => {
         if (err) debug(err);
