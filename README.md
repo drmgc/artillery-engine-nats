@@ -10,6 +10,9 @@
 # First of all, you should start NATS
 $ npm run docker -- up -d
 
+# Run test replier
+$ NATS_SERVER=nats://localhost:14222 node ./nats-replier.js
+
 # Then start test itself
 $ npm run test
 ```
