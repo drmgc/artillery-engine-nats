@@ -111,7 +111,7 @@ class ArtilleryEngineNats {
             opts,
           );
 
-          events.emit('counter', 'nats.response', 1);
+          events.emit('counter', 'nats.responses', 1);
           events.emit('rate', 'nats.response_rate');
 
           const decoded = context.stringCodec.decode(response.data);
