@@ -105,14 +105,18 @@ class ArtilleryEngineNats {
           events.emit('counter', 'nats.requests', 1);
           events.emit('rate', 'nats.request_rate');
 
+          const start = new Date();
           const response = await context.nats.request(
             formattedSubject,
             encodedData,
             opts,
           );
 
+          const stop = new Date();
+
           events.emit('counter', 'nats.responses', 1);
           events.emit('rate', 'nats.response_rate');
+          events.emit('histogram', 'nats.response_time', stop.getTime() - start.getTime());
 
           const decoded = context.stringCodec.decode(response.data);
 
