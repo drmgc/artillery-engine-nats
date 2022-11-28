@@ -1,5 +1,7 @@
 config:
   target: 'nats://localhost:14222'
+  engines:
+    nats: {}
   phases:
     - arrivalRate: 1
       duration: 1
@@ -16,5 +18,11 @@ scenarios:
           subject: 'ping'
       - request:
           subject: 'time'
-      # TODO test capturing
+      - request:
+          subject: 'get-code'
+          capture:
+            - json: '$.code'
+              as: 'code'
+      - request:
+          subject: 'code-{{ code }}'
       - log:  'done'
