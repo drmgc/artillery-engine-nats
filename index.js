@@ -97,11 +97,26 @@ class ArtilleryEngineNats {
 
         if (!context.nats) throw new Error(`NATS instance is missing in the context`);
 
-        debug('request', { subject, rawData });
+        const formattedSubject = engineUtil.template(subject, context);
+
+        debug('request', { subject, formattedSubject, rawData });
 
         try {
-          const response = await context.nats.request(subject, encodedData, opts);
-          debug('received', context.stringCodec.decode(response.data));
+          const response = await context.nats.request(
+            formattedSubject,
+            encodedData,
+            opts,
+          );
+
+          const decoded = context.stringCodec.decode(response.data);
+
+          let responseObject;
+
+          try {
+            responseObject = JSON.parse(decoded);
+          } catch {}
+
+          debug('received', { raw: decoded, obj: responseObject });
 
           // capturing
 
@@ -112,13 +127,17 @@ class ArtilleryEngineNats {
               const { json, as } = cap;
 
               if (typeof json !== 'string') throw new Error('"json" expected to be a string');
-              if (json.startsWith('$.')) throw new Error('"json" expected to be in format "$.foo.bar"');
+              if (!json.startsWith('$.')) throw new Error('"json" expected to be in format "$.foo.bar"');
               if (typeof as !== 'string') throw new Error('"as" expected to be a string');
 
-              newVars[as] = _.get(response, json.substring(2));
+              const path = json.substring(2);
+
+              const value = newVars[as] = _.get(responseObject, path);
+
+              debug({ as, path, value });
             }
 
-            context.vars = { ...context.vars, newVars };
+            context.vars = { ...context.vars, ...newVars };
           }
         } catch (e) {
           debug(e);
