@@ -102,11 +102,17 @@ class ArtilleryEngineNats {
         debug('request', { subject, formattedSubject, rawData });
 
         try {
+          events.emit('counter', 'nats.requests', 1);
+          events.emit('rate', 'nats.request_rate');
+
           const response = await context.nats.request(
             formattedSubject,
             encodedData,
             opts,
           );
+
+          events.emit('counter', 'nats.response', 1);
+          events.emit('rate', 'nats.response_rate');
 
           const decoded = context.stringCodec.decode(response.data);
 
