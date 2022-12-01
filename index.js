@@ -14,6 +14,7 @@ class ArtilleryEngineNats {
     this.helpers = helpers;
 
     this.config = script.config;
+    this.newConnectionForEachScenario = this.config?.engine?.nats?.newConnectionForEachScenario ?? true;
 
     debug('target', this.config.target);
 
@@ -165,13 +166,23 @@ class ArtilleryEngineNats {
     return (initialContext, cb) => {
       const init = async () => {
 
-        debug('connecting to NATS server: ', this.config.target);
+        // debug('connecting to NATS server: ', this.config.target);
 
-        initialContext.nats = await nats.connect({
-          servers: this.config.target,
-        }).catch((err) => {
-          events.emit('error', `Error occured while connecting to NATS server: ${err}`);
-        });
+        if (!this.newConnectionForEachScenario) {
+          initialContext.nats = this.defaultNats;
+        }
+
+        if (!initialContext.nats) {
+          const nats = await this.connectToNats()
+            .catch((err) => {
+              events.emit('error', err);
+            });
+
+          initialContext.nats = nats;
+          if (!this.defaultNats) this.defaultNats = nats;
+
+          debug('got nats', nats);
+        }
 
         initialContext.stringCodec = new nats.StringCodec();
 
@@ -197,6 +208,13 @@ class ArtilleryEngineNats {
     debug('cleaning up');
 
     done(null);
+  }
+
+  async connectToNats(servers = this.config.target) {
+    debug('connecting to NATS server: ', this.config.target);
+    return nats.connect({
+      servers,
+    });
   }
 }
 
